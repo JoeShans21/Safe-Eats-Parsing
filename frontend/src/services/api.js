@@ -2,7 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { CapacitorHttp } from '@capacitor/core';
 
 const BASE_URL = Capacitor.isNativePlatform() 
-  ? 'https://your-production-api.com' // Update with your production API
+  ? 'https://your-production-api.com'
   : 'http://localhost:8000';
 
 export const api = {
@@ -30,6 +30,27 @@ export const api = {
     }
   },
 
+  getRestaurants: async () => {
+    try {
+      const response = await CapacitorHttp.request({
+        method: 'GET',
+        url: `${BASE_URL}/restaurants`,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.status !== 200) {
+        throw new Error(response.data?.detail || 'Failed to fetch restaurants');
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching restaurants:', error);
+      throw error;
+    }
+  },
+
   addMenuItem: async (restaurantId, menuItemData) => {
     try {
       const response = await CapacitorHttp.request({
@@ -42,44 +63,55 @@ export const api = {
         data: menuItemData
       });
       
-      if (response.status === 422) {
-        const validationErrors = response.data.detail.map(error => 
-          `${error.loc[1]}: ${error.msg}`
-        ).join(', ');
-        throw new Error(`Validation error: ${validationErrors}`);
-      }
-      
-      if (response.status !== 200) {
-        throw new Error(response.data?.detail || 'Failed to add menu item');
-      }
-      
-      return response.data;
-    } catch (error) {
-      console.error('Error adding menu item:', error);
-      throw error;
-    }
-  },
-
-  addAllergen: async (menuItemId, allergenData) => {
-    try {
-      const response = await CapacitorHttp.request({
-        method: 'POST',
-        url: `${BASE_URL}/menu/${menuItemId}/allergens`,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        data: allergenData
-      });
-      
       if (response.status !== 200) {
         const errorData = response.data;
-        throw new Error(errorData?.detail || 'Failed to add allergen');
+        throw new Error(errorData?.detail || 'Failed to add menu item');
       }
       
       return response.data;
     } catch (error) {
       console.error('Detailed error:', error);
+      throw error;
+    }
+  },
+
+  getMenuItems: async (restaurantId, filters = {}) => {
+    try {
+      const { dietaryCategory, allergenFree } = filters;
+      let url = `${BASE_URL}/restaurants/${restaurantId}/menu`;
+      
+      // Add query parameters if filters are provided
+      const queryParams = new URLSearchParams();
+      if (dietaryCategory) {
+        queryParams.append('dietary_category', dietaryCategory);
+      }
+      if (allergenFree && allergenFree.length > 0) {
+        allergenFree.forEach(allergen => {
+          queryParams.append('allergen_free', allergen);
+        });
+      }
+      
+      const queryString = queryParams.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
+
+      const response = await CapacitorHttp.request({
+        method: 'GET',
+        url,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.status !== 200) {
+        const errorData = response.data;
+        throw new Error(errorData?.detail || 'Failed to fetch menu items');
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching menu items:', error);
       throw error;
     }
   }
