@@ -5,7 +5,7 @@ class Restaurant(BaseModel):
     name: str
     address: str
     phone: str
-    email: str
+    cuisine_type: str
 
 class MenuItem(BaseModel):
     name: str
