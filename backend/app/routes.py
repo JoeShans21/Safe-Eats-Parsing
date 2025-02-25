@@ -1,15 +1,48 @@
 from fastapi import APIRouter, HTTPException
 from firebase_admin import db
 import uuid
+import random
 from models import Restaurant, MenuItem
 from typing import List, Optional
 
 router = APIRouter()
 
+def generate_id(ref_path: str, length: int = 5, max_attempts: int = 5) -> str:
+    """
+    Generate a unique numeric ID and verify it doesn't exist in the database.
+    
+    Args:
+        ref_path: Firebase reference path to check for existing IDs
+        length: Length of the ID to generate
+        max_attempts: Maximum number of attempts to generate a unique ID
+    
+    Returns:
+        str: A unique numeric ID
+    
+    Raises:
+        HTTPException: If unable to generate a unique ID after max_attempts
+    """
+    ref = db.reference(ref_path)
+    
+    for _ in range(max_attempts):
+        # Generate a number with exact length (e.g., 10000 to 99999 for length=5)
+        min_value = 10 ** (length - 1)
+        max_value = (10 ** length) - 1
+        new_id = str(random.randint(min_value, max_value))
+        
+        # Check if ID exists in database
+        if not ref.child(new_id).get():
+            return new_id
+    
+    raise HTTPException(
+        status_code=500,
+        detail=f"Unable to generate unique ID after {max_attempts} attempts"
+    )
+
 @router.post("/restaurants/")
 async def create_restaurant(restaurant: Restaurant):
     try:
-        restaurant_id = str(uuid.uuid4())
+        restaurant_id = generate_id('restaurants')
         restaurant_dict = restaurant.dict()
         
         ref = db.reference('restaurants')
@@ -75,7 +108,7 @@ async def add_menu_item(restaurant_id: str, menu_item: MenuItem):
                 detail=f"Invalid dietary categories: {', '.join(invalid_categories)}"
             )
         
-        menu_item_id = str(uuid.uuid4())
+        menu_item_id = generate_id('menu_items')
         menu_item_dict = menu_item.dict()
         
         # Add restaurant_id and item_id to the menu item data
