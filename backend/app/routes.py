@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException
 from firebase_admin import db
-import uuid
 import random
 from models import Restaurant, MenuItem
 from typing import List, Optional
@@ -66,7 +65,7 @@ async def get_restaurants():
             return []
             
         restaurants_list = [
-            {"id": restaurant_id, **restaurant_data}
+            {"id": str(restaurant_id), **restaurant_data}
             for restaurant_id, restaurant_data in restaurants_data.items()
         ]
         
@@ -155,7 +154,7 @@ async def get_menu_items(
         
         # Filter menu items for this restaurant
         restaurant_menu = [
-            {"id": item_id, **item_data}
+            {"id": str(item_id), **item_data}
             for item_id, item_data in menu_items.items()
             if item_data.get('restaurant_id') == restaurant_id
         ]
