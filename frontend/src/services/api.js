@@ -1,11 +1,24 @@
 import { Capacitor } from '@capacitor/core';
 import { CapacitorHttp } from '@capacitor/core';
 
-const BASE_URL = Capacitor.isNativePlatform() 
-  ? 'https://your-production-api.com'
-  : window.location.hostname === 'localhost' 
-    ? 'http://localhost:8000'
-    : 'https://restaurant-allergy-manager.vercel.app/'; // Use your actual Vercel URL here
+const getBaseUrl = () => {
+  if (Capacitor.isNativePlatform()) {
+    return 'https://your-production-api.com';
+  }
+  
+  if (window.location.hostname === 'localhost') {
+    return 'http://localhost:8000';
+  }
+  
+  // When deployed on Vercel
+  return window.location.origin;
+};
+
+const BASE_URL = getBaseUrl();
+
+console.log('Using API URL:', BASE_URL);
+
+
 
 export const api = {
   createRestaurant: async (restaurantData) => {
