@@ -1,8 +1,10 @@
 {
-    "buildCommand": "cd frontend && npm install && react-scripts build",
-    "outputDirectory": "frontend/build",
-    "rewrites": [
-      { "source": "/api/(.*)", "destination": "/api/$1" },
-      { "source": "/(.*)", "destination": "/index.html" }
-    ]
-  }
+  "version": 2,
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/build",
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/restaurants(.*)", "dest": "/api/restaurants$1" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
+}

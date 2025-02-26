@@ -6,12 +6,13 @@ const getBaseUrl = () => {
     return 'https://your-production-api.com';
   }
   
+  // Check if running locally or on Vercel
   if (window.location.hostname === 'localhost') {
     return 'http://localhost:8000';
   }
   
-  // When deployed on Vercel
-  return window.location.origin;
+  // When deployed on Vercel - use relative URL
+  return '';  // Empty string for relative URLs
 };
 
 const BASE_URL = getBaseUrl();

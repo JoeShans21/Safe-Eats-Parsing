@@ -9,7 +9,8 @@ app = FastAPI()
 origins = [
     "http://localhost:3000",    # React app
     "http://localhost:8000",    # FastAPI backend
-    "https://restaurant-allergy-manager.vercel.app/" # Vercel deployment
+    "https://restaurant-allergy-manager-1oyxcuevw-connors-projects-019cf205.vercel.app",  # Your Vercel domain
+    "https://*.vercel.app"      # Allow all Vercel subdomains
 ]
 
 app.add_middleware(
