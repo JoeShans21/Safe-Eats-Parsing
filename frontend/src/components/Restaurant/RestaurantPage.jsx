@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { Toast } from '@capacitor/toast';
 import { api } from '../../services/api'; // Ensure this points to your `api.js`
@@ -20,21 +20,21 @@ const RestaurantPage = () => {
   useEffect(() => {
     const fetchRestaurantData = async () => {
       try {
-        const restaurantData = await api.getRestaurants(); // Fetch all restaurants
-        const restaurant = restaurantData.find(r => r.id === restaurantId);
-
+        const restaurantData = await api.getRestaurants();
+        const restaurant = restaurantData.find(r => String(r.id) === restaurantId); // Ensure ID match
+  
         if (!restaurant) {
           setError('Restaurant not found');
           await showToast('Restaurant not found');
           return;
         }
-
+  
         setRestaurant(restaurant);
-
+  
         // Fetch menu items
         const menuData = await api.getMenuItems(restaurantId);
         setMenuItems(menuData);
-
+  
       } catch (error) {
         setError('Failed to load restaurant information');
         await showToast('Failed to load restaurant information');
@@ -42,7 +42,7 @@ const RestaurantPage = () => {
         setLoading(false);
       }
     };
-
+  
     fetchRestaurantData();
   }, [restaurantId]);
 

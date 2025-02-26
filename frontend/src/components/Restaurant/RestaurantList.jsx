@@ -88,13 +88,13 @@ const RestaurantList = () => {
               
               <div className="flex space-x-2 mt-4">
                 <Link 
-                  to={`/restaurant/${restaurant.id}`}
+                  to={`/restaurant/${String(restaurant.id)}`}  // Ensure ID is a string
                   className="bg-blue-500 text-white py-1 px-3 rounded hover:bg-blue-600 text-sm"
                 >
                   View Details
                 </Link>
                 <Link 
-                  to={`/menu/${restaurant.id}`}
+                  to={`/menu/${String(restaurant.id)}`}  // Ensure ID is a string
                   className="bg-green-500 text-white py-1 px-3 rounded hover:bg-green-600 text-sm"
                 >
                   Add Menu Item
