@@ -870,7 +870,10 @@
     "yaml": "^1.10.2",
     "yargs": "^16.2.0",
     "yargs-parser": "^20.2.9",
-    "yocto-queue": "^0.1.0"
+    "yocto-queue": "^0.1.0",
+    "eslint": "^8.57.1",
+    "eslint-config-react-app": "^7.0.1",
+    "@babel/plugin-proposal-private-property-in-object": "^7.16.7"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -884,5 +887,6 @@
     "eslint": "^8.57.1",
     "eslint-config-react-app": "^7.0.1",
     "@babel/plugin-proposal-private-property-in-object": "^7.16.7"
+    
   }
 }
