@@ -57,7 +57,7 @@ def initialize_firebase():
                 raise
         
         # Get database URL
-        database_url = os.getenv('FIREBASE_DATABASE_URL')
+        database_url = os.environ.get('DATABASE_URL')
         if not database_url:
             print("FIREBASE_DATABASE_URL not found in environment")
             raise ValueError("Firebase database URL not found")
