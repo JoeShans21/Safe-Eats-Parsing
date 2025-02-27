@@ -6,13 +6,13 @@ const getBaseUrl = () => {
     return 'https://your-production-api.com';
   }
   
-  // Check if running locally or on Vercel
+  // Check if running locally
   if (window.location.hostname === 'localhost') {
     return 'http://localhost:8000';
   }
   
-  // When deployed on Vercel - use relative URL
-  return '';  // Empty string for relative URLs
+  // When deployed on Render
+  return 'https://restaurant-allergy-manager.onrender.com/';  // Replace with your actual Render backend URL
 };
 
 const BASE_URL = getBaseUrl();
