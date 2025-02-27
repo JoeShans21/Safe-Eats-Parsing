@@ -882,6 +882,7 @@
   "description": "",
   "devDependencies": {
     "eslint": "^8.57.1",
-    "eslint-config-react-app": "^7.0.1"
+    "eslint-config-react-app": "^7.0.1",
+    "@babel/plugin-proposal-private-property-in-object": "^7.16.7"
   }
 }
