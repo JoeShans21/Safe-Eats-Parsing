@@ -9,7 +9,7 @@ app = FastAPI()
 origins = [
     "http://localhost:3000",    # React app
     "http://localhost:8000",    # FastAPI backend
-    "https://restaurant-allergy-manager.onrender.com/" # Render app
+    "https://restaurant-allergy-manager.onrender.com" # Render app
 ]
 
 app.add_middleware(
@@ -32,20 +32,44 @@ load_dotenv()
 
 def initialize_firebase():
     try:
-        # Get credentials from .env
-        cred_json = os.getenv('FIREBASE_CREDENTIALS')
-        if not cred_json:
-            raise ValueError("FIREBASE_CREDENTIALS not found in .env")
-            
-        # Parse the JSON string into a dictionary
-        cred_dict = json.loads(cred_json)
+        # Check for Render secret file first
+        render_cred_path = "/etc/secrets/firebase-credentials.json"
         
-        cred = credentials.Certificate(cred_dict)
+        if os.path.exists(render_cred_path):
+            print("Using Render secret file for Firebase credentials")
+            cred = credentials.Certificate(render_cred_path)
+        else:
+            # Fall back to environment variable
+            print("Render secret file not found, trying environment variable")
+            cred_json = os.getenv('FIREBASE_CREDENTIALS')
+            if not cred_json:
+                print("FIREBASE_CREDENTIALS not found in environment")
+                raise ValueError("Firebase credentials not found")
+                
+            try:
+                # Parse the JSON string into a dictionary
+                cred_dict = json.loads(cred_json)
+                print("Successfully parsed credentials JSON")
+                cred = credentials.Certificate(cred_dict)
+            except json.JSONDecodeError as json_err:
+                print(f"JSON parsing error: {json_err}")
+                print(f"First 50 chars of credential string: {cred_json[:50]}...")
+                raise
+        
+        # Get database URL
+        database_url = os.getenv('FIREBASE_DATABASE_URL')
+        if not database_url:
+            print("FIREBASE_DATABASE_URL not found in environment")
+            raise ValueError("Firebase database URL not found")
+            
         firebase_admin.initialize_app(cred, {
-            'databaseURL': os.getenv('FIREBASE_DATABASE_URL')
+            'databaseURL': database_url
         })
+        print("Firebase initialized successfully")
     except Exception as e:
         print(f"Firebase initialization error: {e}")
+        import traceback
+        traceback.print_exc()
 
 initialize_firebase()
 # Import and include your router

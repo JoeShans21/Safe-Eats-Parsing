@@ -12,7 +12,7 @@ const getBaseUrl = () => {
   }
   
   // When deployed on Render
-  return 'https://restaurant-allergy-manager.onrender.com/';  // Replace with your actual Render backend URL
+  return 'https://restaurant-allergy-manager.onrender.com';  // Replace with your actual Render backend URL
 };
 
 const BASE_URL = getBaseUrl();
