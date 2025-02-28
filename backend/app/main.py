@@ -32,37 +32,21 @@ load_dotenv()
 
 def initialize_firebase():
     try:
-        # Check for Render secret file first
-        render_cred_path = "/etc/secrets/firebase-credentials.json"
-        
-        if os.path.exists(render_cred_path):
-            print("Using Render secret file for Firebase credentials")
-            cred = credentials.Certificate(render_cred_path)
-        else:
-            # Fall back to environment variable
-            print("Render secret file not found, trying environment variable")
-            cred_json = os.getenv('FIREBASE_CREDENTIALS')
-            if not cred_json:
-                print("FIREBASE_CREDENTIALS not found in environment")
-                raise ValueError("Firebase credentials not found")
-                
-            try:
-                # Parse the JSON string into a dictionary
-                cred_dict = json.loads(cred_json)
-                print("Successfully parsed credentials JSON")
-                cred = credentials.Certificate(cred_dict)
-            except json.JSONDecodeError as json_err:
-                print(f"JSON parsing error: {json_err}")
-                print(f"First 50 chars of credential string: {cred_json[:50]}...")
-                raise
-        
-        # Get database URL
-        database_url = os.environ.get('DATABASE_URL')
-        if not database_url:
-            print("FIREBASE_DATABASE_URL not found in environment")
-            raise ValueError("Firebase database URL not found")
+        # Get Firebase credentials from environment variable
+        cred_json = os.getenv('FIREBASE_CREDENTIALS')
+        if not cred_json:
+            raise ValueError("FIREBASE_CREDENTIALS not found in environment")
             
-        firebase_admin.initialize_app(cred, {
+        # Parse the JSON string into a dictionary
+        cred_dict = json.loads(cred_json)
+        
+        # Get database URL from environment
+        database_url = os.getenv('DATABASE_URL')
+        if not database_url:
+            raise ValueError("DATABASE_URL not found in environment")
+            
+        # Initialize Firebase
+        firebase_admin.initialize_app(credentials.Certificate(cred_dict), {
             'databaseURL': database_url
         })
         print("Firebase initialized successfully")
@@ -79,3 +63,8 @@ app.include_router(router)
 @app.get("/")
 async def root():
     return {"message": "Restaurant Allergy Manager API"}
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)
