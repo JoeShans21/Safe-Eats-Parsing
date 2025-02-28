@@ -59,7 +59,7 @@ const RestaurantList = () => {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Restaurants</h2>
+        <h2 className="text-2xl font-bold">All Restaurants</h2>
         <Link 
           to="/add-restaurant"
           className="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"

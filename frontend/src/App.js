@@ -4,6 +4,7 @@ import AddRestaurant from './components/Restaurant/AddRestaurant';
 import AddMenuItem from './components/Menu/AddMenuItem';
 import RestaurantPage from './components/Restaurant/RestaurantPage';
 import RestaurantList from './components/Restaurant/RestaurantList';
+import LandingPage from './components/General/LandingPage';
 
 function App() {
   return (
@@ -32,7 +33,7 @@ function App() {
         
         <main className="py-6">
           <Routes>
-            <Route path="/" element={<RestaurantList />} />
+            <Route path="/" element={<LandingPage />} />
             <Route path="/add-restaurant" element={<AddRestaurant />} />
             <Route path="/restaurant/:restaurantId" element={<RestaurantPage />} />
             <Route path="/menu/:restaurantId" element={<AddMenuItem />} />
