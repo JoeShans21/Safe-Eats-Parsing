@@ -10,8 +10,11 @@ const AddMenuItem = () => {
     price: '',
     restaurantId: '',
     allergens: [],
-    dietaryCategories: []
+    dietaryCategories: [],
+    ingredients: ''
   });
+  const [parsedAllergens, setParsedAllergens] = useState([]);
+  const [parseError, setParseError] = useState('');
   const [restaurants, setRestaurants] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -78,6 +81,33 @@ const AddMenuItem = () => {
     }));
   };
 
+  const parseIngredients = () => {
+    if (!formData.ingredients.trim()) {
+      return;
+    }
+    
+    setParseError('');
+    const ingredients = formData.ingredients.toLowerCase().split(',').map(item => item.trim());
+    const foundAllergens = [];
+    
+    ingredients.forEach(ingredient => {
+      allergenOptions.forEach(allergen => {
+        if (ingredient.includes(allergen.label.toLowerCase())) {
+          if (!foundAllergens.includes(allergen.id)) {
+            foundAllergens.push(allergen.id);
+          }
+        }
+      });
+    });
+    
+    setParsedAllergens(foundAllergens);
+    
+    setFormData(prev => ({
+      ...prev,
+      allergens: [...new Set([...prev.allergens, ...foundAllergens])]
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -117,8 +147,11 @@ const AddMenuItem = () => {
         price: '',
         restaurantId: '',
         allergens: [],
-        dietaryCategories: []
+        dietaryCategories: [],
+        ingredients: ''
       });
+      setParsedAllergens([]);
+      setParseError('');
     } catch (error) {
       const errorMessage = error.message || 'Error adding menu item';
       setError(errorMessage);
@@ -190,6 +223,49 @@ const AddMenuItem = () => {
             onChange={(e) => setFormData({...formData, price: e.target.value})}
             required
           />
+        </div>
+
+        {/* New Ingredient Input Section */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Ingredient Input</label>
+          <textarea
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter ingredients separated by commas"
+            value={formData.ingredients}
+            onChange={(e) => setFormData({...formData, ingredients: e.target.value})}
+            rows={2}
+          />
+          <button
+            type="button"
+            className={`mt-2 py-1 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              formData.ingredients.trim() 
+                ? "bg-gray-200 text-gray-800 hover:bg-gray-300" 
+                : "bg-gray-100 text-gray-400 cursor-not-allowed"
+            }`}
+            onClick={parseIngredients}
+            disabled={!formData.ingredients.trim()}
+          >
+            Parse
+          </button>
+          <div className="mt-2 text-sm">
+            {parseError ? (
+              <span className="text-red-600">{parseError}</span>
+            ) : (
+              <div>
+                <span>Parsed allergens: </span>
+                {parsedAllergens.length > 0 ? (
+                  <span className="font-medium">
+                    {parsedAllergens.map(id => {
+                      const allergen = allergenOptions.find(a => a.id === id);
+                      return allergen ? `${allergen.icon} ${allergen.label} ` : '';
+                    })}
+                  </span>
+                ) : (
+                  <span className="text-gray-500">None detected</span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <div>
