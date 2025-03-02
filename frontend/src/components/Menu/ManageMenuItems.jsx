@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import MenuItemForm from './MenuItemForm';
 
@@ -8,6 +8,7 @@ const ManageMenuItems = () => {
   const [menuForms, setMenuForms] = useState([0]); // Start with a single form with index 0
   const [menuItemsData, setMenuItemsData] = useState({}); // Use an object with form indices as keys
   const { restaurantId } = useParams(); // Get restaurantId from URL
+  const navigate = useNavigate(); // Hook for navigation
 
   useEffect(() => {
     const fetchRestaurants = async () => {
@@ -20,6 +21,11 @@ const ManageMenuItems = () => {
     };
     fetchRestaurants();
   }, []);
+
+  // Handle navigation back to restaurant page
+  const handleBackToRestaurant = () => {
+    navigate(`/restaurant/${restaurantId}`);
+  };
 
   const addMenuItem = () => {
     const newFormIndex = menuForms.length > 0 ? Math.max(...menuForms) + 1 : 0;
@@ -80,8 +86,10 @@ const ManageMenuItems = () => {
       await Promise.all(addItemPromises);
 
       alert('All menu items added successfully!');
-      setMenuForms([0]); // Reset to a single form
-      setMenuItemsData({}); // Clear the collected data
+      
+      // Navigate back to restaurant page after successful addition
+      navigate(`/restaurant/${restaurantId}`);
+      
     } catch (error) {
       console.error('Failed to add menu items', error);
       alert('Error adding menu items.');
@@ -89,7 +97,17 @@ const ManageMenuItems = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-4 space-y-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Manage Menu Items</h1>
+        <button 
+          onClick={handleBackToRestaurant}
+          className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-md flex items-center"
+        >
+          <span className="mr-1">←</span> Back to Restaurant
+        </button>
+      </div>
+      
       {menuForms.map((formIndex) => (
         <MenuItemForm
           key={formIndex}
@@ -101,7 +119,7 @@ const ManageMenuItems = () => {
         />
       ))}
       
-      <div className="flex space-x-4 mt-4">
+      <div className="flex space-x-4 mt-8">
         <button 
           onClick={addMenuItem} 
           className="bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600"
@@ -114,6 +132,13 @@ const ManageMenuItems = () => {
           className="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600"
         >
           ✅ Add All Items
+        </button>
+        
+        <button
+          onClick={handleBackToRestaurant}
+          className="bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600"
+        >
+          Cancel
         </button>
       </div>
     </div>
