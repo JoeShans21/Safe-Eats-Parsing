@@ -1,7 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import AddRestaurant from './components/Restaurant/AddRestaurant';
-import AddMenuItem from './components/Menu/AddMenuItem';
+import MenuItemForm from './components/Menu/MenuItemForm';
+import ManageMenuItems from './components/Menu/ManageMenuItems';
 import RestaurantPage from './components/Restaurant/RestaurantPage';
 import RestaurantList from './components/Restaurant/RestaurantList';
 import LandingPage from './components/General/LandingPage';
@@ -30,7 +31,7 @@ function App() {
             <Route path="/restaurant-list" element={<RestaurantList />} />
             <Route path="/add-restaurant" element={<AddRestaurant />} />
             <Route path="/restaurant/:restaurantId" element={<RestaurantPage />} />
-            <Route path="/menu/:restaurantId" element={<AddMenuItem />} />
+            <Route path="/:restaurantId/add" element={<ManageMenuItems />} />
           </Routes>
         </main>
       </div>

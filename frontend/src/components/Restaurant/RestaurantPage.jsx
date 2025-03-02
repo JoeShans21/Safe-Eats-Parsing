@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom'; // Import useNavigate
 import { Capacitor } from '@capacitor/core';
 import { Toast } from '@capacitor/toast';
 import { api } from '../../services/api'; // Ensure this points to your `api.js`
 
 const RestaurantPage = () => {
   const { restaurantId } = useParams();
+  const navigate = useNavigate(); // Get the navigate function
   const [restaurant, setRestaurant] = useState(null);
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -70,6 +71,12 @@ const RestaurantPage = () => {
           </ul>
         )}
       </div>
+      <button 
+        onClick={() => navigate(`/${restaurantId}/add`)} // Use navigate
+        className="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600"
+      >
+        Add Items
+      </button>
     </div>
   );
 };

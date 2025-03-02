@@ -93,12 +93,6 @@ const RestaurantList = () => {
                 >
                   View Details
                 </Link>
-                <Link 
-                  to={`/menu/${String(restaurant.id)}`}  // Ensure ID is a string
-                  className="bg-green-500 text-white py-1 px-3 rounded hover:bg-green-600 text-sm"
-                >
-                  Add Menu Item
-                </Link>
               </div>
             </div>
           ))}
