@@ -33,7 +33,8 @@ const MenuItemForm = ({ formIndex, onRemove, onFormChange, initialData = {}, res
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    price: '',
+    price: '$0.00',
+    priceNumeric: 0, // Numeric value for price calculations
     allergens: [],
     dietaryCategories: [],
     ingredients: '',
@@ -46,11 +47,58 @@ const MenuItemForm = ({ formIndex, onRemove, onFormChange, initialData = {}, res
   // Effect to handle initialData updates from parent
   useEffect(() => {
     if (!isEqual(initialData, prevFormDataRef.current)) {
+      // Format price if present in initialData
+      let formattedInitialData = { ...initialData };
+      
+      if (initialData.price !== undefined) {
+        // If the price is already a number, format it accordingly
+        let priceValue = initialData.price;
+        
+        // Handle if the price is already a string with a $ sign
+        if (typeof priceValue === 'string' && priceValue.includes('$')) {
+          priceValue = priceValue.replace(/[^\d.]/g, '');
+        }
+        
+        // Convert to number if needed
+        if (typeof priceValue !== 'number') {
+          priceValue = parseFloat(priceValue);
+        }
+        
+        // Store the numeric value
+        formattedInitialData.priceNumeric = priceValue;
+        
+        // Format for display with $ sign
+        if (!isNaN(priceValue)) {
+          // Convert to cents (multiply by 100 and round to avoid floating-point issues)
+          const cents = Math.round(priceValue * 100);
+          const priceDigits = cents.toString();
+          
+          if (priceDigits.length === 0 || cents === 0) {
+            formattedInitialData.price = '$0.00';
+          } else if (priceDigits.length === 1) {
+            formattedInitialData.price = `$0.0${priceDigits}`;
+          } else if (priceDigits.length === 2) {
+            formattedInitialData.price = `$0.${priceDigits}`;
+          } else {
+            const dollars = priceDigits.slice(0, -2);
+            const centsPart = priceDigits.slice(-2);
+            const dollarsFormatted = Number(dollars).toString();
+            formattedInitialData.price = `$${dollarsFormatted}.${centsPart}`;
+          }
+        } else {
+          formattedInitialData.price = '$0.00';
+        }
+      } else {
+        // If no price is provided, set a default
+        formattedInitialData.price = '$0.00';
+        formattedInitialData.priceNumeric = 0;
+      }
+      
       setFormData(prev => ({
         ...prev,
-        ...initialData
+        ...formattedInitialData
       }));
-      prevFormDataRef.current = initialData;
+      prevFormDataRef.current = formattedInitialData;
     }
   }, [initialData]);
 
@@ -65,12 +113,71 @@ const MenuItemForm = ({ formIndex, onRemove, onFormChange, initialData = {}, res
     // Only call onFormChange if data has actually changed and isn't empty
     if (onFormChange && !isEqual(formData, prevFormDataRef.current)) {
       prevFormDataRef.current = { ...formData };
-      onFormChange(formData);
+      
+      // Create a data object to send to parent, with price as a number
+      const dataForParent = { ...formData };
+      
+      // If we have a numeric price, use that for data sent to parent
+      if (formData.priceNumeric !== undefined) {
+        dataForParent.price = formData.priceNumeric;
+      }
+      
+      onFormChange(dataForParent);
     }
   }, [formData, onFormChange]);
 
   const handleChange = (key, value) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // Handle price input with automatic decimal formatting
+  const handlePriceChange = (e) => {
+    // Get current cursor position
+    const cursorPosition = e.target.selectionStart;
+    const input = e.target.value;
+    
+    // Remove any non-digits and dollar signs
+    const digitsOnly = input.replace(/[^\d]/g, '');
+    
+    // Format with decimal point and dollar sign
+    let formattedDisplay = '';
+    let numericValue = 0;
+    
+    if (digitsOnly.length === 0) {
+      formattedDisplay = '$0.00';
+      numericValue = 0;
+    } else if (digitsOnly.length === 1) {
+      numericValue = parseFloat(`0.0${digitsOnly}`);
+      formattedDisplay = `$0.0${digitsOnly}`;
+    } else if (digitsOnly.length === 2) {
+      numericValue = parseFloat(`0.${digitsOnly}`);
+      formattedDisplay = `$0.${digitsOnly}`;
+    } else {
+      const dollars = digitsOnly.slice(0, -2);
+      const cents = digitsOnly.slice(-2);
+      // Convert to number and back to string to remove leading zeros
+      const dollarsFormatted = Number(dollars).toString();
+      numericValue = parseFloat(`${dollarsFormatted}.${cents}`);
+      formattedDisplay = `$${dollarsFormatted}.${cents}`;
+    }
+    
+    // Store both the display value and numeric value
+    setFormData(prev => ({
+      ...prev,
+      price: formattedDisplay,
+      priceNumeric: numericValue
+    }));
+    
+    // Set cursor position after update (in a setTimeout to ensure DOM is updated)
+    setTimeout(() => {
+      if (e.target) {
+        // Calculate new cursor position, accounting for the $ sign
+        const newPosition = cursorPosition + (formattedDisplay.length - input.length);
+        // Make sure cursor position is valid
+        const validPosition = Math.max(1, Math.min(newPosition, formattedDisplay.length));
+        e.target.setSelectionRange(validPosition, validPosition);
+      }
+    }, 0);
   };
 
   const handleCheckboxChange = (key, id) => {
@@ -136,12 +243,10 @@ const MenuItemForm = ({ formIndex, onRemove, onFormChange, initialData = {}, res
         />
         
         <input
-          type="number"
-          step="0.01"
-          min="0.01"
+          type="text"
           placeholder="Price"
-          value={formData.price}
-          onChange={(e) => handleChange('price', e.target.value)}
+          value={formData.price || '$0.00'}
+          onChange={handlePriceChange}
           required
           className="w-full px-3 py-2 border border-gray-300 rounded-md"
         />
