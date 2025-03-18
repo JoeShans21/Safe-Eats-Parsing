@@ -212,7 +212,8 @@ const MenuItemForm = ({ formIndex, onRemove, onFormChange, initialData = {}, res
   };
 
   return (
-    <div className="p-6 border border-gray-300 rounded-md shadow-md relative">
+    <div className="mb-6 p-6 border border-gray-300 rounded-md shadow-md w-2xl">
+      {/* "header" */}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold">Menu Item #{formIndex + 1}</h2>
         <button 
@@ -225,40 +226,42 @@ const MenuItemForm = ({ formIndex, onRemove, onFormChange, initialData = {}, res
       </div>
       
       <div className="space-y-4">
-        <input
-          type="text"
-          placeholder="Item Name"
-          value={formData.name}
-          onChange={(e) => handleChange('name', e.target.value)}
-          required
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-        />
+
+        <div className='flex'>
+          <label className='block font-medium text-lg whitespace-nowrap'>Item Name*</label>
+          <input
+            type="text"
+            placeholder="Item Name"
+            value={formData.name}
+            onChange={(e) => handleChange('name', e.target.value)}
+            required
+            className="w-4/5 px-3 py-2 border border-gray-300 rounded-md ml-auto"
+          />
+        </div>
         
-        <textarea
-          placeholder="Description"
-          value={formData.description}
-          onChange={(e) => handleChange('description', e.target.value)}
-          required
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-        />
-        
-        <input
-          type="text"
-          placeholder="Price"
-          value={formData.price || '$0.00'}
-          onChange={handlePriceChange}
-          required
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-        />
+        <div className='flex items-start'>
+          <label className='block font-medium text-lg whitespace-nowrap mr-5'>Description*</label>
+          <textarea
+            placeholder="Description"
+            value={formData.description}
+            onChange={(e) => handleChange('description', e.target.value)}
+            required
+            className="w-4/5 px-3 py-2 border border-gray-300 rounded-md ml-auto"
+          />
+        </div>
 
         {/* Ingredient Parsing */}
         <div>
-          <textarea
-            placeholder="Enter ingredients separated by commas"
-            value={formData.ingredients}
-            onChange={(e) => handleChange('ingredients', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          />
+          <div className='flex items-start'>
+            <label className='block font-medium text-lg whitespace-nowrap mr-6'>Ingredients</label>
+            <textarea
+              placeholder="Enter ingredients separated by commas"
+              value={formData.ingredients}
+              onChange={(e) => handleChange('ingredients', e.target.value)}
+              className="w-4/5 px-3 py-2 border border-gray-300 rounded-md ml-auto"
+            />
+          </div>
+          
           <button
             type="button"
             className={`mt-2 py-1 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${formData.ingredients.trim() ? "bg-gray-200 text-gray-800 hover:bg-gray-300" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
@@ -288,41 +291,69 @@ const MenuItemForm = ({ formIndex, onRemove, onFormChange, initialData = {}, res
           </div>
         </div>
 
-        {/* Allergens Section */}
-        <div>
-          <h3 className="font-medium mb-2">Allergens</h3>
-          <div className="grid grid-cols-2 gap-2">
-            {allergenOptions.map((allergen) => (
-              <label key={allergen.id} className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={formData.allergens.includes(allergen.id)}
-                  onChange={() => handleCheckboxChange('allergens', allergen.id)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span>{allergen.icon} {allergen.label}</span>
-              </label>
-            ))}
-          </div>
-        </div>
+        {/* Container for the bottom */}
+        <div className='flex justify-between'>
 
-        {/* Dietary Categories */}
-        <div>
-          <h3 className="font-medium mb-2">Dietary Options</h3>
-          <div className="grid grid-cols-2 gap-2">
-            {dietaryCategories.map((category) => (
-              <label key={category.id} className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={formData.dietaryCategories.includes(category.id)}
-                  onChange={() => handleCheckboxChange('dietaryCategories', category.id)}
-                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span>{category.icon} {category.label}</span>
-              </label>
-            ))}
+
+          {/* TODO: PUT THE IMAGE FIELD HERE */}
+
+
+          {/* Container for price and dietary category */}
+          <div className=''>
+            {/* Price */}
+            <div className='mb-3'>
+              <label className='block font-medium text-lg whitespace-nowrap'>Price*</label>
+              <input
+                type="text"
+                placeholder="Price"
+                value={formData.price || '$0.00'}
+                onChange={handlePriceChange}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              />
+            </div>
+            
+
+            {/* Dietary Categories */}
+            <div>
+              <label className="font-medium mb-2">Dietary Options</label>
+              <div className="">
+                {dietaryCategories.map((category) => (
+                  <label key={category.id} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.dietaryCategories.includes(category.id)}
+                      onChange={() => handleCheckboxChange('dietaryCategories', category.id)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>{category.icon} {category.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
+          
+
+          {/* Allergens Section */}
+          <div>
+            <label className="font-medium mb-2">Allergens</label>
+            <div className="grid grid-cols-2 gap-2">
+              {allergenOptions.map((allergen) => (
+                <label key={allergen.id} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.allergens.includes(allergen.id)}
+                    onChange={() => handleCheckboxChange('allergens', allergen.id)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>{allergen.icon} {allergen.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          
+        </div> {/* end of bottom half */}
+
       </div>
     </div>
   );

@@ -107,17 +107,21 @@ const ManageMenuItems = () => {
           <span className="mr-1">←</span> Back to Restaurant
         </button>
       </div>
+
+      <div className='flex flex-col justify-center items-center'>
+        {menuForms.map((formIndex) => (
+          <MenuItemForm
+            key={formIndex}
+            formIndex={formIndex}
+            restaurantOptions={restaurants}
+            onRemove={() => removeMenuItem(formIndex)}
+            onFormChange={(data) => handleFormChange(formIndex, data)}
+            initialData={menuItemsData[formIndex] || {}}
+          />
+        ))}
+      </div>
       
-      {menuForms.map((formIndex) => (
-        <MenuItemForm
-          key={formIndex}
-          formIndex={formIndex}
-          restaurantOptions={restaurants}
-          onRemove={() => removeMenuItem(formIndex)}
-          onFormChange={(data) => handleFormChange(formIndex, data)}
-          initialData={menuItemsData[formIndex] || {}}
-        />
-      ))}
+      
       
       <div className="flex space-x-4 mt-8">
         <button 
