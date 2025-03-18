@@ -11,7 +11,7 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">
-        <nav className="bg-white shadow-sm font-[Roboto_Flex] flex ml-5">
+        <nav className="bg-white shadow-sm font-[Roboto_Flex] flex pl-6">
           <div className="flex-shrink-0 flex items-center">
             <Link to="/" className="text-3xl font-bold text-[#8DB670] m-4">SafeEats</Link>
           </div>

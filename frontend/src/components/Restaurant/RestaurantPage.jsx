@@ -56,13 +56,13 @@ const RestaurantPage = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h2 className="text-3xl font-bold mb-4">{restaurant.name}</h2>
+    <div className="max-w-4xl mx-auto p-6 flex flex-col justify-center items-center">
+      <h2 className="text-3xl font-bold mb-8">{restaurant.name}</h2>
 
       <div className="mb-6">
-        <h3 className="text-2xl font-semibold">Menu Items</h3>
+        <h3 className="text-2xl font-semibold mb-8 text-center">Menu Items</h3>
         {menuItems.length === 0 ? (
-          <p className="text-gray-500">No menu items available.</p>
+          <p className="text-gray-500">No menu items added yet. Click the button below to add your first items!</p>
         ) : (
           <ul>
             {menuItems.map(item => (
@@ -73,9 +73,9 @@ const RestaurantPage = () => {
       </div>
       <button 
         onClick={() => navigate(`/${restaurantId}/add`)} // Use navigate
-        className="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600"
+        className="mx-auto w-full max-w-72 text-center bg-[#8DB670] rounded-xl pt-4 pb-4 font-semibold text-white mt-2 hover:bg-[#6c8b55]"
       >
-        Add Items
+        Create New Items
       </button>
     </div>
   );
