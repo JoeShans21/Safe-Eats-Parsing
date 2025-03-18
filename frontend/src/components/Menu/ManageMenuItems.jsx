@@ -98,14 +98,15 @@ const ManageMenuItems = () => {
 
   return (
     <div className="container mx-auto p-4 space-y-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Manage Menu Items</h1>
+
+      <div className="relative flex w-full mb-6">
         <button 
           onClick={handleBackToRestaurant}
           className="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-md flex items-center"
         >
           <span className="mr-1">←</span> Back to Restaurant
         </button>
+        <h1 className="absolute left-[42%] text-3xl font-bold">Add Menu Items</h1>
       </div>
 
       <div className='flex flex-col justify-center items-center'>
@@ -120,8 +121,6 @@ const ManageMenuItems = () => {
           />
         ))}
       </div>
-      
-      
       
       <div className="flex space-x-4 mt-8">
         <button 
