@@ -106,7 +106,7 @@ const ManageMenuItems = () => {
         >
           <span className="mr-1">←</span> Back to Restaurant
         </button>
-        <h1 className="absolute left-[42%] text-3xl font-bold">Add Menu Items</h1>
+        <h1 className="absolute left-[41%] text-3xl font-bold">Add Menu Items</h1>
       </div>
 
       <div className='flex flex-col justify-center items-center'>
@@ -121,29 +121,36 @@ const ManageMenuItems = () => {
           />
         ))}
       </div>
-      
-      <div className="flex space-x-4 mt-8">
-        <button 
-          onClick={addMenuItem} 
-          className="bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600"
-        >
-          ➕ Add Another Item
-        </button>
 
-        <button
-          onClick={handleAddAllItems}
-          className="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600"
-        >
-          ✅ Add All Items
-        </button>
+      <div className='w-full flex flex-col justify-center items-center'>
+        <div className="w-[55%]">
+          <button 
+              onClick={addMenuItem} 
+              className="block w-12 h-12 float-right bg-[#8DB670] text-white rounded-full hover:bg-[#6c8b55]"
+              title="Add another item"
+            >
+              ➕
+          </button>
+          <div className='flex flex-col justify-center items-center gap-6 mt-10'>
+            <button
+              onClick={handleAddAllItems}
+              className="block w-full max-w-96 text-center bg-[#8DB670] rounded-xl pt-4 pb-4 font-semibold text-white mt-2 hover:bg-[#6c8b55]"
+            >
+              Add All Items
+            </button>
+
+            <button
+              onClick={handleBackToRestaurant}
+              className="bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600"
+            >
+              Cancel
+            </button>
+          </div>
         
-        <button
-          onClick={handleBackToRestaurant}
-          className="bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600"
-        >
-          Cancel
-        </button>
+          
+        </div>
       </div>
+      
     </div>
   );
 };
