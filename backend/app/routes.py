@@ -178,3 +178,104 @@ async def get_menu_items(
     except Exception as e:
         print(f"Error fetching menu items: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+    
+@router.put("/restaurants/{restaurant_id}/menu/{menu_item_id}")
+async def update_menu_item(restaurant_id: str, menu_item_id: str, menu_item: MenuItem):
+    try:
+        # Verify restaurant exists
+        restaurant_ref = db.reference(f'restaurants/{restaurant_id}')
+        restaurant_data = restaurant_ref.get()
+        
+        if not restaurant_data:
+            raise HTTPException(status_code=404, detail=f"Restaurant {restaurant_id} not found")
+        
+        # Verify menu item exists and belongs to the restaurant
+        menu_ref = db.reference(f'menu_items/{menu_item_id}')
+        menu_item_data = menu_ref.get()
+        
+        if not menu_item_data:
+            raise HTTPException(status_code=404, detail=f"Menu item {menu_item_id} not found")
+        
+        if menu_item_data.get('restaurant_id') != restaurant_id:
+            raise HTTPException(
+                status_code=403, 
+                detail=f"Menu item {menu_item_id} does not belong to restaurant {restaurant_id}"
+            )
+        
+        # Validate allergens and dietary categories
+        valid_allergens = {
+            'milk', 'eggs', 'fish', 'tree_nuts', 'wheat', 
+            'crustaceans', 'gluten_free', 'peanuts', 'soybeans', 'sesame'
+        }
+        valid_dietary_categories = {'vegan', 'vegetarian'}
+        
+        # Validate allergens
+        invalid_allergens = set(menu_item.allergens) - valid_allergens
+        if invalid_allergens:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid allergens: {', '.join(invalid_allergens)}"
+            )
+        
+        # Validate dietary categories
+        invalid_categories = set(menu_item.dietaryCategories) - valid_dietary_categories
+        if invalid_categories:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid dietary categories: {', '.join(invalid_categories)}"
+            )
+        
+        # Update menu item data while preserving ID and restaurant_id
+        menu_item_dict = menu_item.dict()
+        updated_menu_item = {
+            **menu_item_dict,
+            "id": menu_item_id,
+            "restaurant_id": restaurant_id
+        }
+        
+        # Update in database
+        menu_ref.set(updated_menu_item)
+        
+        return updated_menu_item
+        
+    except HTTPException as he:
+        # Re-raise HTTP exceptions as is
+        raise he
+    except Exception as e:
+        print(f"Error updating menu item: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/restaurants/{restaurant_id}/menu/{menu_item_id}")
+async def delete_menu_item(restaurant_id: str, menu_item_id: str):
+    try:
+        # Verify restaurant exists
+        restaurant_ref = db.reference(f'restaurants/{restaurant_id}')
+        restaurant_data = restaurant_ref.get()
+        
+        if not restaurant_data:
+            raise HTTPException(status_code=404, detail=f"Restaurant {restaurant_id} not found")
+        
+        # Verify menu item exists and belongs to the restaurant
+        menu_ref = db.reference(f'menu_items/{menu_item_id}')
+        menu_item_data = menu_ref.get()
+        
+        if not menu_item_data:
+            raise HTTPException(status_code=404, detail=f"Menu item {menu_item_id} not found")
+        
+        if menu_item_data.get('restaurant_id') != restaurant_id:
+            raise HTTPException(
+                status_code=403, 
+                detail=f"Menu item {menu_item_id} does not belong to restaurant {restaurant_id}"
+            )
+        
+        # Delete the menu item
+        menu_ref.delete()
+        
+        return {"message": f"Menu item {menu_item_id} successfully deleted"}
+        
+    except HTTPException as he:
+        # Re-raise HTTP exceptions as is
+        raise he
+    except Exception as e:
+        print(f"Error deleting menu item: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
