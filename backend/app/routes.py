@@ -202,29 +202,6 @@ async def update_menu_item(restaurant_id: str, menu_item_id: str, menu_item: Men
                 detail=f"Menu item {menu_item_id} does not belong to restaurant {restaurant_id}"
             )
         
-        # Validate allergens and dietary categories
-        valid_allergens = {
-            'milk', 'eggs', 'fish', 'tree_nuts', 'wheat', 
-            'crustaceans', 'gluten_free', 'peanuts', 'soybeans', 'sesame'
-        }
-        valid_dietary_categories = {'vegan', 'vegetarian'}
-        
-        # Validate allergens
-        invalid_allergens = set(menu_item.allergens) - valid_allergens
-        if invalid_allergens:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid allergens: {', '.join(invalid_allergens)}"
-            )
-        
-        # Validate dietary categories
-        invalid_categories = set(menu_item.dietaryCategories) - valid_dietary_categories
-        if invalid_categories:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid dietary categories: {', '.join(invalid_categories)}"
-            )
-        
         # Update menu item data while preserving ID and restaurant_id
         menu_item_dict = menu_item.dict()
         updated_menu_item = {
