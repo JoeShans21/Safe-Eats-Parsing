@@ -6,7 +6,7 @@ const allergenOptions = [
   { id: 'fish', label: 'Fish', icon: '🐟' },
   { id: 'tree_nuts', label: 'Tree Nuts', icon: '🌰' },
   { id: 'wheat', label: 'Wheat', icon: '🌾' },
-  { id: 'crustaceans', label: 'Crustaceans', icon: '🦀' },
+  { id: 'shellfish', label: 'Shellfish', icon: '🦀' },
   { id: 'gluten_free', label: 'Gluten-Free', icon: '🌾' },
   { id: 'peanuts', label: 'Peanuts', icon: '🥜' },
   { id: 'soybeans', label: 'Soybeans', icon: '🫘' },

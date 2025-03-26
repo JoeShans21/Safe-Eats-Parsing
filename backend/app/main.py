@@ -3,8 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 import firebase_admin
 from firebase_admin import credentials, db
 import os
+from auth_routes import auth_router
 
 app = FastAPI()
+app.include_router(auth_router, prefix="/auth")
 
 origins = [
     "http://localhost:3000",    # React app

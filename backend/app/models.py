@@ -11,5 +11,19 @@ class MenuItem(BaseModel):
     name: str
     description: str
     price: float
-    allergens: List[str] = []  # List of allergen IDs
-    dietaryCategories: List[str] = []  # List of dietary category IDs
+    allergens: List[str] = [] 
+    dietaryCategories: List[str] = [] 
+
+class UserCreate(BaseModel):
+    email: str
+    password: str
+    display_name: Optional[str] = None
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
+
+class UserResponse(BaseModel):
+    uid: str
+    email: str
+    display_name: Optional[str] = None
