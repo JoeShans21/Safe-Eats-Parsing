@@ -23,6 +23,7 @@ const dietaryCategories = [
   { id: 'vegetarian', label: 'Vegetarian', icon: '🥗' }
 ];
 
+
 const RestaurantPage = () => {
   const { restaurantId } = useParams();
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ const RestaurantPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editingItemId, setEditingItemId] = useState(null);
+  const [originalItem, setOriginalItem] = useState(null);
 
   const showToast = async (message) => {
     if (Capacitor.isNativePlatform()) {
@@ -94,12 +96,25 @@ const RestaurantPage = () => {
   };
 
   const handleEdit = (menuItemId) => {
+    // Store the original item before starting to edit
+    const itemToEdit = menuItems.find(item => item.id === menuItemId);
+    setOriginalItem(itemToEdit);
+  
     // Toggle editing state for this item
     setEditingItemId(editingItemId === menuItemId ? null : menuItemId);
   };
 
   const handleCancelEdit = () => {
+    // If we have the original item, replace the current edited item with it
+    if (originalItem) {
+      setMenuItems(menuItems.map(item => 
+        item.id === originalItem.id ? originalItem : item
+      ));
+    }
+  
+    // Reset editing state
     setEditingItemId(null);
+    setOriginalItem(null);
   };
 
   const handleSaveEdit = async (updatedItem) => {
