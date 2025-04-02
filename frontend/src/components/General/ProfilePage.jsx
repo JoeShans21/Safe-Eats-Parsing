@@ -97,12 +97,10 @@ const ProfilePage = () => {
               </div>
             )}
             
-            {user?.role && (
-              <div className="border-b pb-2">
-                <p className="text-sm text-gray-600">Role</p>
-                <p className="font-medium capitalize">{user.role}</p>
-              </div>
-            )}
+            <div className="border-b pb-2">
+              <p className="text-sm text-gray-600">Role</p>
+              <p className="font-medium capitalize">{user?.is_admin ? 'Administrator' : 'User'}</p>
+            </div>
             
             {user?.restaurantId && (
               <div className="border-b pb-2">
@@ -110,34 +108,17 @@ const ProfilePage = () => {
                 <p className="font-medium">{user.restaurantId}</p>
               </div>
             )}
-            
-            <div className="border-b pb-2">
-              <p className="text-sm text-gray-600">Account Created</p>
-              <p className="font-medium">
-                {user?.createdAt 
-                  ? new Date(user.createdAt).toLocaleDateString() 
-                  : 'Information not available'}
-              </p>
-            </div>
           </div>
         </div>
         
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row justify-center gap-4 mt-6">
+        <div className="flex justify-center mt-6">
           <button 
             onClick={() => navigate('/restaurant-list')}
             className="px-4 py-2 text-white bg-[#8DB670] rounded hover:bg-[#6c8b55]"
           >
             Back to Dashboard
           </button>
-    
-          <button 
-            onClick={() => navigate('/edit-profile')}
-            className="px-4 py-2 border border-[#8DB670] text-[#8DB670] rounded hover:bg-[#f5f9f2]"
-          >
-            Edit Profile
-          </button>
-        
         </div>
       </div>
     </div>

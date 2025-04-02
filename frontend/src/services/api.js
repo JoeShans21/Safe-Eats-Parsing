@@ -35,11 +35,48 @@ const getUserId = () => {
   return localStorage.getItem('user_id');
 };
 
+// Set user email
+const setUserEmail = (email) => {
+  if (email) {
+    localStorage.setItem('email', email);
+  }
+};
+
+// Get user email
+const getUserEmail = () => {
+  return localStorage.getItem('email');
+};
+
+// Set user name
+const setUserName = (name) => {
+  if (name) {
+    localStorage.setItem('user_name', name);
+  }
+};
+
+// Get user name
+const getUserName = () => {
+  return localStorage.getItem('user_name');
+};
+
+// Set user role
+const setUserRole = (isAdmin) => {
+  localStorage.setItem('is_admin', isAdmin ? 'true' : 'false');
+};
+
+// Get user role
+const isUserAdmin = () => {
+  return localStorage.getItem('is_admin') === 'true';
+};
+
 // Clear authentication data
 const clearAuthData = () => {
   localStorage.removeItem('auth_token');
   localStorage.removeItem('user_id');
+  localStorage.removeItem('user_name');
+  localStorage.removeItem('email');
   localStorage.removeItem('restaurant_id');
+  localStorage.removeItem('is_admin');
 };
 
 // Set restaurant ID
@@ -52,6 +89,11 @@ const setRestaurantId = (restaurantId) => {
 // Get restaurant ID
 const getRestaurantId = () => {
   return localStorage.getItem('restaurant_id');
+};
+
+// Trigger auth change event - to notify components
+const triggerAuthChange = () => {
+  window.dispatchEvent(new CustomEvent('auth-change'));
 };
 
 // HTTP request wrapper with authorization
@@ -75,8 +117,17 @@ const httpRequest = async (options) => {
       console.warn('Received 401 Unauthorized response');
       // Clear auth data
       clearAuthData();
+      // Trigger auth change event
+      triggerAuthChange();
       // Throw error to be caught by caller
       throw new Error('Your session has expired. Please log in again.');
+    }
+    
+    // Handle forbidden responses
+    if (response.status === 403) {
+      console.warn('Received 403 Forbidden response');
+      // Throw error to be caught by caller
+      throw new Error('You do not have permission to access this resource.');
     }
     
     return response;
@@ -108,10 +159,16 @@ export const api = {
       // Store token and user data directly
       setAuthToken(response.data.token);
       setUserId(response.data.uid);
+      setUserEmail(response.data.email);
+      setUserName(response.data.name);
+      setUserRole(response.data.is_admin);
       
       if (response.data.restaurantId) {
         setRestaurantId(response.data.restaurantId);
       }
+      
+      // Trigger auth change event
+      triggerAuthChange();
       
       return response.data;
     } catch (error) {
@@ -146,10 +203,16 @@ export const api = {
       // Store token and user data directly
       setAuthToken(response.data.token);
       setUserId(response.data.uid);
+      setUserEmail(response.data.email);
+      setUserName(response.data.name);
+      setUserRole(response.data.is_admin);
       
       if (response.data.restaurantId) {
         setRestaurantId(response.data.restaurantId);
       }
+      
+      // Trigger auth change event
+      triggerAuthChange();
       
       return response.data;
     } catch (error) {
@@ -176,6 +239,9 @@ export const api = {
     } finally {
       // Always clear local auth data
       clearAuthData();
+      
+      // Trigger auth change event
+      triggerAuthChange();
     }
   },
   
@@ -196,8 +262,14 @@ export const api = {
       
       if (response.status !== 200) {
         clearAuthData();
+        triggerAuthChange();
         throw new Error(response.data?.detail || 'Failed to get user data');
       }
+      
+      // Store user data
+      setUserRole(response.data.is_admin);
+      setUserName(response.data.name);
+      setUserEmail(response.data.email);
       
       // Update stored restaurant ID if it exists
       if (response.data.restaurantId) {
@@ -208,7 +280,74 @@ export const api = {
     } catch (error) {
       console.error('Error getting current user:', error);
       clearAuthData();
+      triggerAuthChange();
       return null;
+    }
+  },
+  
+  // User management methods (admin only)
+  getAllUsers: async () => {
+    try {
+      const response = await httpRequest({
+        method: 'GET',
+        url: `${BASE_URL}/auth/users`,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.status !== 200) {
+        throw new Error(response.data?.detail || 'Failed to fetch users');
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      throw error;
+    }
+  },
+  
+  makeUserAdmin: async (userId) => {
+    try {
+      const response = await httpRequest({
+        method: 'POST',
+        url: `${BASE_URL}/auth/make-admin/${userId}`,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.status !== 200) {
+        throw new Error(response.data?.detail || 'Failed to update user role');
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error making user admin:', error);
+      throw error;
+    }
+  },
+  
+  makeUserAdminByEmail: async (email) => {
+    try {
+      const response = await httpRequest({
+        method: 'POST',
+        url: `${BASE_URL}/auth/make-admin-by-email`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        data: { email }
+      });
+      
+      if (response.status !== 200) {
+        throw new Error(response.data?.detail || 'Failed to update user role');
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error making user admin:', error);
+      throw error;
     }
   },
   
@@ -239,6 +378,7 @@ export const api = {
       // Store the restaurant ID
       if (response.data.id) {
         setRestaurantId(response.data.id);
+        triggerAuthChange();
       }
       
       return response.data;
@@ -257,10 +397,6 @@ export const api = {
           'Accept': 'application/json'
         }
       });
-      
-      // Log response details for debugging
-      console.log('Response status:', response.status);
-      console.log('Response data:', response.data);
       
       if (response.status !== 200) {
         throw new Error(response.data?.detail || 'Failed to fetch restaurants');
@@ -335,12 +471,47 @@ export const api = {
       throw error;
     }
   },
+
+  removeUserAdmin: async (email) => {
+    try {
+      const response = await httpRequest({
+        method: 'POST',
+        url: `${BASE_URL}/auth/remove-admin-by-email`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        data: { email }
+      });
+      
+      if (response.status !== 200) {
+        throw new Error(response.data?.detail || 'Failed to update user role');
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error removing admin privileges:', error);
+      throw error;
+    }
+  },
+  
+  // User role and data helpers
+  isAdmin: () => {
+    return isUserAdmin();
+  },
+  
+  getUserName: () => {
+    return getUserName();
+  },
   
   // Debug helper
   debugAuthState: () => {
     const token = getAuthToken();
     const userId = getUserId();
+    const userEmail = getUserEmail();
+    const userName = getUserName();
     const restaurantId = getRestaurantId();
+    const isAdmin = isUserAdmin();
     
     console.group('Authentication State Debug');
     console.log('Has token:', !!token);
@@ -349,13 +520,21 @@ export const api = {
       console.log('Token preview:', token.substring(0, 10) + '...');
     }
     console.log('User ID:', userId || 'None');
+    console.log('User Email:', userEmail || 'None');
+    console.log('User Name:', userName || 'None');
     console.log('Restaurant ID:', restaurantId || 'None');
+    console.log('Is Admin:', isAdmin);
     console.groupEnd();
     
     return {
       isAuthenticated: !!token,
       hasUserId: !!userId,
-      hasRestaurantId: !!restaurantId
+      hasUserEmail: !!userEmail,
+      hasUserName: !!userName,
+      hasRestaurantId: !!restaurantId,
+      isAdmin: isAdmin
     };
   }
+
+  
 };

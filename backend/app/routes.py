@@ -39,6 +39,20 @@ def generate_id(ref_path: str, length: int = 5, max_attempts: int = 5) -> str:
         detail=f"Unable to generate unique ID after {max_attempts} attempts"
     )
 
+# Check if the user is an admin
+async def check_admin_status(token_data: dict) -> bool:
+    """Check if the user has admin privileges based on token data"""
+    user_id = token_data.get("uid")
+    if not user_id:
+        return False
+    
+    # Get user data from database to check admin status
+    user_ref = db.reference(f'users/{user_id}')
+    user_data = user_ref.get()
+    
+    # Return admin status
+    return user_data.get('is_admin', False) if user_data else False
+
 @router.post("/restaurants/")
 async def create_restaurant(restaurant: Restaurant, token_data: dict = Depends(verify_token)):
     try:
@@ -79,21 +93,32 @@ async def get_restaurants(token_data: dict = Depends(verify_token)):
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid user token")
         
-        # Get restaurants owned by this user
+        # Check if user is admin
+        is_admin = await check_admin_status(token_data)
+        
+        # Get restaurants
         ref = db.reference('restaurants')
         all_restaurants = ref.get()
         
         if not all_restaurants:
             return []
         
-        # Filter restaurants by owner_uid
-        user_restaurants = [
-            {"id": str(restaurant_id), **restaurant_data}
-            for restaurant_id, restaurant_data in all_restaurants.items()
-            if restaurant_data.get('owner_uid') == user_id
-        ]
+        # Admins can see all restaurants, others only see their own
+        if is_admin:
+            # Return all restaurants for admins
+            restaurants = [
+                {"id": str(restaurant_id), **restaurant_data}
+                for restaurant_id, restaurant_data in all_restaurants.items()
+            ]
+        else:
+            # Filter restaurants by owner_uid for regular users
+            restaurants = [
+                {"id": str(restaurant_id), **restaurant_data}
+                for restaurant_id, restaurant_data in all_restaurants.items()
+                if restaurant_data.get('owner_uid') == user_id
+            ]
         
-        return user_restaurants
+        return restaurants
     except Exception as e:
         print(f"Error fetching restaurants: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -106,6 +131,9 @@ async def get_restaurant(restaurant_id: str, token_data: dict = Depends(verify_t
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid user token")
         
+        # Check if user is admin
+        is_admin = await check_admin_status(token_data)
+        
         # Get the restaurant
         ref = db.reference(f'restaurants/{restaurant_id}')
         restaurant_data = ref.get()
@@ -113,9 +141,8 @@ async def get_restaurant(restaurant_id: str, token_data: dict = Depends(verify_t
         if not restaurant_data:
             raise HTTPException(status_code=404, detail=f"Restaurant {restaurant_id} not found")
         
-        # Verify ownership or permissions (later)
-        # Currently just checking if user owns this restaurant
-        if restaurant_data.get('owner_uid') != user_id:
+        # Verify ownership or admin status
+        if restaurant_data.get('owner_uid') != user_id and not is_admin:
             raise HTTPException(status_code=403, detail="You don't have permission to access this restaurant")
         
         return {"id": restaurant_id, **restaurant_data}
@@ -125,10 +152,18 @@ async def get_restaurant(restaurant_id: str, token_data: dict = Depends(verify_t
         print(f"Error fetching restaurant: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Menu item routes remain largely the same but now require authentication
+# Menu item routes remain largely the same but now check for admin status too
 @router.post("/restaurants/{restaurant_id}/menu")
 async def add_menu_item(restaurant_id: str, menu_item: MenuItem, token_data: dict = Depends(verify_token)):
     try:
+        # Extract user ID from token
+        user_id = token_data.get("uid")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid user token")
+            
+        # Check if user is admin
+        is_admin = await check_admin_status(token_data)
+        
         # Verify restaurant exists
         restaurant_ref = db.reference(f'restaurants/{restaurant_id}')
         restaurant_data = restaurant_ref.get()
@@ -136,9 +171,8 @@ async def add_menu_item(restaurant_id: str, menu_item: MenuItem, token_data: dic
         if not restaurant_data:
             raise HTTPException(status_code=404, detail=f"Restaurant {restaurant_id} not found")
         
-        # Verify ownership (optional, depending on your requirements)
-        user_id = token_data.get("uid")
-        if restaurant_data.get('owner_uid') != user_id:
+        # Verify ownership or admin status
+        if restaurant_data.get('owner_uid') != user_id and not is_admin:
             raise HTTPException(status_code=403, detail="You don't have permission to modify this restaurant's menu")
         
         # Validate allergens and dietary categories
@@ -195,12 +229,24 @@ async def get_menu_items(
     token_data: dict = Depends(verify_token)
 ):
     try:
+        # Extract user ID from token
+        user_id = token_data.get("uid")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid user token")
+            
+        # Check if user is admin
+        is_admin = await check_admin_status(token_data)
+        
         # Verify restaurant exists
         restaurant_ref = db.reference(f'restaurants/{restaurant_id}')
         restaurant_data = restaurant_ref.get()
         
         if not restaurant_data:
             raise HTTPException(status_code=404, detail=f"Restaurant {restaurant_id} not found")
+        
+        # Verify ownership or admin status
+        if restaurant_data.get('owner_uid') != user_id and not is_admin:
+            raise HTTPException(status_code=403, detail="You don't have permission to access this restaurant's menu")
         
         # Get all menu items for the restaurant
         menu_ref = db.reference('menu_items')

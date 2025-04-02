@@ -10,6 +10,7 @@ const RegisterRestaurant = () => {
   
   // Initialize form data with any values passed from the landing page
   const [userData, setUserData] = useState({
+    name: '',  // Added name field
     email: location.state?.email || '',
     password: location.state?.password || '',
     confirmPassword: ''
@@ -30,14 +31,25 @@ const RegisterRestaurant = () => {
   useEffect(() => {
     // Check if user is already logged in
     const checkAuth = async () => {
-      const user = await api.getCurrentUser();
-      if (user) {
-        if (user.restaurantId) {
-          navigate(`/restaurant/${user.restaurantId}`);
+      try {
+        console.log("Checking authentication status...");
+        const user = await api.getCurrentUser();
+        console.log("Current user:", user);
+        
+        if (user) {
+          if (user.restaurantId) {
+            console.log("User has restaurant, redirecting to:", `/restaurant/${user.restaurantId}`);
+            navigate(`/restaurant/${user.restaurantId}`);
+          } else {
+            // User exists but no restaurant, go to step 2
+            console.log("User exists but no restaurant, setting step to 2");
+            setStep(2);
+          }
         } else {
-          // User exists but no restaurant, go to step 2
-          setStep(2);
+          console.log("No authenticated user found");
         }
+      } catch (error) {
+        console.error('Auth check error:', error);
       }
     };
 
@@ -57,6 +69,13 @@ const RegisterRestaurant = () => {
   const handleUserSubmit = async (e) => {
     e.preventDefault();
     
+    // Validate name field
+    if (!userData.name.trim()) {
+      setError('Please enter your name');
+      await showToast('Please enter your name');
+      return;
+    }
+    
     // Password validation
     if (userData.password !== userData.confirmPassword) {
       setError('Passwords do not match');
@@ -74,12 +93,21 @@ const RegisterRestaurant = () => {
     setError('');
     
     try {
+      console.log("Registering user with data:", { 
+        name: userData.name,
+        email: userData.email,
+        password: userData.password
+      });
+      
       // Register the user
       const userResponse = await api.registerUser({
+        name: userData.name,
         email: userData.email,
         password: userData.password,
         restaurantName: '' // Will be set later
       });
+      
+      console.log("Registration response:", userResponse);
       
       setSuccess('Account created! Now let\'s add your restaurant details.');
       await showToast('Account created successfully!');
@@ -101,14 +129,20 @@ const RegisterRestaurant = () => {
     setError('');
     
     try {
+      console.log("Creating restaurant with data:", restaurantData);
+      
       // Create the restaurant
       const response = await api.createRestaurant(restaurantData);
+      
+      console.log("Restaurant creation response:", response);
       
       setSuccess('Restaurant registered successfully!');
       await showToast('Restaurant registered successfully!');
       
-      // Navigate to the restaurant page
-      navigate(`/restaurant/${response.id}`);
+      // Navigate to the restaurant page - add small delay to ensure data is updated
+      setTimeout(() => {
+        navigate(`/restaurant/${response.id}`);
+      }, 500);
     } catch (error) {
       setError(error.message || 'Failed to create restaurant');
       await showToast(error.message || 'Failed to create restaurant');
@@ -148,6 +182,19 @@ const RegisterRestaurant = () => {
             <>
               <h2 className="text-2xl font-bold mb-6 text-center">Create Your Account</h2>
               <form onSubmit={handleUserSubmit}>
+                {/* Name field */}
+                <div className="mb-4">
+                  <label className="block text-lg mb-2">Name*</label>
+                  <input 
+                    type="text"
+                    placeholder="Enter your full name" 
+                    className="w-full p-3 border border-gray-300 rounded-xl"
+                    value={userData.name}
+                    onChange={(e) => setUserData({...userData, name: e.target.value})}
+                    required
+                  />
+                </div>
+                
                 <div className="mb-4">
                   <label className="block text-lg mb-2">Email*</label>
                   <input 
