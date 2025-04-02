@@ -1,37 +1,109 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import AddRestaurant from './components/Restaurant/AddRestaurant';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import MenuItemForm from './components/Menu/MenuItemForm';
 import ManageMenuItems from './components/Menu/ManageMenuItems';
 import RestaurantPage from './components/Restaurant/RestaurantPage';
 import RestaurantList from './components/Restaurant/RestaurantList';
 import LandingPage from './components/General/LandingPage';
+import RegisterRestaurant from './components/Restaurant/RegisterRestaurant';
+import ProfilePage from './components/General/ProfilePage';
+import AdminPanel from './components/General/AdminPanel';
+import Header from './components/General/Header';
+
+// Simplified Protected Route - uses localStorage directly for quick checks
+const ProtectedRoute = ({ element }) => {
+  const token = localStorage.getItem('auth_token');
+  
+  if (!token) {
+    // Redirect to login if not authenticated
+    return <Navigate to="/" replace />;
+  }
+  
+  return element;
+};
+
+// Simplified Admin Route - uses localStorage directly for quick checks
+const AdminRoute = ({ element }) => {
+  const token = localStorage.getItem('auth_token');
+  const isAdmin = localStorage.getItem('is_admin') === 'true';
+  
+  if (!token) {
+    // Redirect to login if not authenticated
+    return <Navigate to="/" replace />;
+  }
+  
+  if (!isAdmin) {
+    // Redirect to user's restaurant if not admin
+    const restaurantId = localStorage.getItem('restaurant_id');
+    if (restaurantId) {
+      return <Navigate to={`/restaurant/${restaurantId}`} replace />;
+    } else {
+      // If no restaurant yet, go to add restaurant page
+      return <Navigate to="/add-restaurant" replace />;
+    }
+  }
+  
+  return element;
+};
 
 function App() {
+  const [restaurantId, setRestaurantId] = useState(localStorage.getItem('restaurant_id') || null);
+  
+  // Listen for auth changes to update restaurantId
+  useEffect(() => {
+    const updateRestaurantId = () => {
+      setRestaurantId(localStorage.getItem('restaurant_id') || null);
+    };
+    
+    window.addEventListener('auth-change', updateRestaurantId);
+    
+    return () => {
+      window.removeEventListener('auth-change', updateRestaurantId);
+    };
+  }, []);
+
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">
-        <nav className="bg-white shadow-sm font-[Roboto_Flex] flex pl-6">
-          <div className="flex-shrink-0 flex items-center">
-            <Link to="/" className="text-3xl font-bold text-[#8DB670] m-4">SafeEats</Link>
-          </div>
-          <div className="ml-6 flex space-x-4 items-center">
-            <Link to="/restaurant-list" className="text-gray-700 hover:text-[#6c8b55] px-3 py-2 rounded-md">
-              Home
-            </Link>
-            <Link to="/add-restaurant" className="text-gray-700 hover:text-[#6c8b55] px-3 py-2 rounded-md">
-              Add Restaurant
-            </Link>
-          </div>
-        </nav>
+        {/* Header - passing current restaurantId */}
+        <Header restaurantId={restaurantId} />
         
         <main className="py-6">
           <Routes>
+            {/* Public routes */}
             <Route path="/" element={<LandingPage />} />
-            <Route path="/restaurant-list" element={<RestaurantList />} />
-            <Route path="/add-restaurant" element={<AddRestaurant />} />
-            <Route path="/restaurant/:restaurantId" element={<RestaurantPage />} />
-            <Route path="/:restaurantId/add" element={<ManageMenuItems />} />
+            <Route path="/signup" element={<RegisterRestaurant />} />
+            
+            {/* Protected routes */}
+            <Route 
+              path="/profile" 
+              element={<ProtectedRoute element={<ProfilePage />} />} 
+            />
+            <Route 
+              path="/restaurant/:restaurantId" 
+              element={<ProtectedRoute element={<RestaurantPage />} />} 
+            />
+            <Route 
+              path="/restaurant/:restaurantId/menu" 
+              element={<ProtectedRoute element={<ManageMenuItems />} />} 
+            />
+            <Route 
+              path="/add-restaurant" 
+              element={<ProtectedRoute element={<RegisterRestaurant />} />} 
+            />
+            
+            {/* Admin-only routes */}
+            <Route 
+              path="/restaurant-list" 
+              element={<AdminRoute element={<RestaurantList />} />} 
+            />
+            <Route 
+              path="/admin" 
+              element={<AdminRoute element={<AdminPanel />} />} 
+            />
+
+            {/* Fallback route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
       </div>
