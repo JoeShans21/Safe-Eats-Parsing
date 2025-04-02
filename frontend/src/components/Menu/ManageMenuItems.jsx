@@ -7,20 +7,44 @@ const ManageMenuItems = () => {
   const [restaurants, setRestaurants] = useState([]);
   const [menuForms, setMenuForms] = useState([0]); // Start with a single form with index 0
   const [menuItemsData, setMenuItemsData] = useState({}); // Use an object with form indices as keys
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const { restaurantId } = useParams(); // Get restaurantId from URL
   const navigate = useNavigate(); // Hook for navigation
 
+  // First, check authentication status
   useEffect(() => {
-    const fetchRestaurants = async () => {
+    const checkAuth = async () => {
       try {
+        setLoading(true);
+        const user = await api.getCurrentUser();
+        
+        if (!user) {
+          // If not authenticated, redirect to login
+          navigate('/', { state: { returnTo: `/restaurant/${restaurantId}/menu` } });
+          return;
+        }
+        
+        // Verify user has access to this restaurant
+        const hasAccess = user.is_admin || user.restaurantId === restaurantId;
+        if (!hasAccess) {
+          navigate(`/restaurant/${user.restaurantId || ''}`);
+          return;
+        }
+        
+        // Once authenticated, fetch restaurants
         const response = await api.getRestaurants();
         setRestaurants(response);
+        setLoading(false);
       } catch (error) {
-        console.error("Failed to fetch restaurants", error);
+        console.error("Authentication or fetch error", error);
+        setError("Failed to load data. Please try again.");
+        setLoading(false);
       }
     };
-    fetchRestaurants();
-  }, []);
+    
+    checkAuth();
+  }, [restaurantId, navigate]);
 
   // Handle navigation back to restaurant page
   const handleBackToRestaurant = () => {
@@ -60,7 +84,7 @@ const ManageMenuItems = () => {
   // Handle the submission of all items at once
   const handleAddAllItems = async () => {
     if (!restaurantId) {
-      alert('Restaurant ID is missing!');
+      setError('Restaurant ID is missing!');
       return;
     }
 
@@ -70,11 +94,12 @@ const ManageMenuItems = () => {
     );
 
     if (itemsToAdd.length === 0) {
-      alert('No valid menu items to add!');
+      setError('No valid menu items to add!');
       return;
     }
 
     try {
+      setLoading(true);
       console.log('Adding menu items:', itemsToAdd);
 
       // Use Promise.all to send all requests in parallel
@@ -92,13 +117,22 @@ const ManageMenuItems = () => {
       
     } catch (error) {
       console.error('Failed to add menu items', error);
-      alert('Error adding menu items.');
+      setError('Error adding menu items. Please try again.');
+      setLoading(false);
     }
   };
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="container mx-auto p-4 flex justify-center items-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#8DB670]"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-4">
-
       <div className="relative flex w-full mb-6">
         <button 
           onClick={handleBackToRestaurant}
@@ -108,6 +142,12 @@ const ManageMenuItems = () => {
         </button>
         <h1 className="absolute left-[41%] text-3xl font-bold">Add Menu Items</h1>
       </div>
+
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
 
       <div className='flex flex-col justify-center items-center'>
         {menuForms.map((formIndex) => (
@@ -129,14 +169,15 @@ const ManageMenuItems = () => {
               className="block w-12 h-12 float-right bg-[#8DB670] rounded-full hover:bg-[#6c8b55] justify-items-center"
               title="Add another item"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           </button>
           <div className='flex flex-col justify-center items-center gap-6 mt-10'>
             <button
               onClick={handleAddAllItems}
-              className="block w-full max-w-96 text-center bg-[#8DB670] rounded-xl pt-4 pb-4 font-semibold text-white mt-2 hover:bg-[#6c8b55]"
+              disabled={loading}
+              className="block w-full max-w-96 text-center bg-[#8DB670] rounded-xl pt-4 pb-4 font-semibold text-white mt-2 hover:bg-[#6c8b55] disabled:bg-gray-400"
             >
-              Add All Items
+              {loading ? 'Adding Items...' : 'Add All Items'}
             </button>
 
             <button
@@ -146,11 +187,8 @@ const ManageMenuItems = () => {
               Cancel
             </button>
           </div>
-        
-          
         </div>
       </div>
-      
     </div>
   );
 };

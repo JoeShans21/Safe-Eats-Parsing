@@ -268,11 +268,11 @@ const RestaurantPage = () => {
         )}
       </div>
       <button 
-        onClick={() => navigate(`/${restaurantId}/add`)}
-        className="mx-auto w-full max-w-72 text-center bg-[#8DB670] rounded-xl pt-4 pb-4 font-semibold text-white mt-6 hover:bg-[#6c8b55]"
-      >
-        Create New Items
-      </button>
+  onClick={() => navigate(`/restaurant/${restaurantId}/menu`)}
+  className="mx-auto w-full max-w-72 text-center bg-[#8DB670] rounded-xl pt-4 pb-4 font-semibold text-white mt-6 hover:bg-[#6c8b55]"
+>
+  Create New Items
+</button>
     </div>
   );
 };
