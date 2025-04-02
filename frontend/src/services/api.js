@@ -534,7 +534,51 @@ export const api = {
       hasRestaurantId: !!restaurantId,
       isAdmin: isAdmin
     };
-  }
-
+  },
   
+  updateMenuItem: async (restaurantId, menuItemId, menuItemData) => {
+    try {
+      const response = await CapacitorHttp.request({
+        method: 'PUT',
+        url: `${BASE_URL}/restaurants/${restaurantId}/menu/${menuItemId}`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        data: menuItemData
+      });
+      
+      if (response.status !== 200) {
+        const errorData = response.data;
+        throw new Error(errorData?.detail || 'Failed to update menu item');
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error updating menu item:', error);
+      throw error;
+    }
+  },
+
+  deleteMenuItem: async (restaurantId, menuItemId) => {
+    try {
+      const response = await CapacitorHttp.request({
+        method: 'DELETE',
+        url: `${BASE_URL}/restaurants/${restaurantId}/menu/${menuItemId}`,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.status !== 200) {
+        const errorData = response.data;
+        throw new Error(errorData?.detail || 'Failed to delete menu item');
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting menu item:', error);
+      throw error;
+    }
+  }
 };

@@ -47,58 +47,37 @@ const MenuItemForm = ({ formIndex, onRemove, onFormChange, initialData = {}, res
   // Effect to handle initialData updates from parent
   useEffect(() => {
     if (!isEqual(initialData, prevFormDataRef.current)) {
-      // Format price if present in initialData
-      let formattedInitialData = { ...initialData };
-      
-      if (initialData.price !== undefined) {
-        // If the price is already a number, format it accordingly
-        let priceValue = initialData.price;
+      // Only update if this is the first initialization or a significant change
+      if (!prevFormDataRef.current || 
+          initialData.id !== prevFormDataRef.current.id ||
+          initialData.name !== prevFormDataRef.current.name) {
         
-        // Handle if the price is already a string with a $ sign
-        if (typeof priceValue === 'string' && priceValue.includes('$')) {
-          priceValue = priceValue.replace(/[^\d.]/g, '');
-        }
+        // Use the already formatted values from parent if available
+        let formattedInitialData = { ...initialData };
         
-        // Convert to number if needed
-        if (typeof priceValue !== 'number') {
-          priceValue = parseFloat(priceValue);
-        }
-        
-        // Store the numeric value
-        formattedInitialData.priceNumeric = priceValue;
-        
-        // Format for display with $ sign
-        if (!isNaN(priceValue)) {
-          // Convert to cents (multiply by 100 and round to avoid floating-point issues)
-          const cents = Math.round(priceValue * 100);
-          const priceDigits = cents.toString();
+        // Only format if not already formatted by parent
+        if (formattedInitialData.priceNumeric === undefined) {
+          // Handle price formatting as before
+          let priceValue = initialData.price;
           
-          if (priceDigits.length === 0 || cents === 0) {
-            formattedInitialData.price = '$0.00';
-          } else if (priceDigits.length === 1) {
-            formattedInitialData.price = `$0.0${priceDigits}`;
-          } else if (priceDigits.length === 2) {
-            formattedInitialData.price = `$0.${priceDigits}`;
-          } else {
-            const dollars = priceDigits.slice(0, -2);
-            const centsPart = priceDigits.slice(-2);
-            const dollarsFormatted = Number(dollars).toString();
-            formattedInitialData.price = `$${dollarsFormatted}.${centsPart}`;
+          if (typeof priceValue === 'string' && priceValue.includes('$')) {
+            priceValue = priceValue.replace(/[^\d.]/g, '');
           }
-        } else {
-          formattedInitialData.price = '$0.00';
+          
+          if (typeof priceValue !== 'number') {
+            priceValue = parseFloat(priceValue);
+          }
+          
+          formattedInitialData.priceNumeric = isNaN(priceValue) ? 0 : priceValue;
+          formattedInitialData.price = `$${formattedInitialData.priceNumeric.toFixed(2)}`;
         }
-      } else {
-        // If no price is provided, set a default
-        formattedInitialData.price = '$0.00';
-        formattedInitialData.priceNumeric = 0;
+        
+        setFormData(prev => ({
+          ...prev,
+          ...formattedInitialData
+        }));
+        prevFormDataRef.current = formattedInitialData;
       }
-      
-      setFormData(prev => ({
-        ...prev,
-        ...formattedInitialData
-      }));
-      prevFormDataRef.current = formattedInitialData;
     }
   }, [initialData]);
 
@@ -191,11 +170,11 @@ const MenuItemForm = ({ formIndex, onRemove, onFormChange, initialData = {}, res
 
   const parseIngredients = () => {
     if (!formData.ingredients.trim()) return;
-
+  
     setParseError('');
     const ingredients = formData.ingredients.toLowerCase().split(',').map(item => item.trim());
     const foundAllergens = [];
-
+  
     ingredients.forEach(ingredient => {
       allergenOptions.forEach(allergen => {
         if (ingredient.includes(allergen.label.toLowerCase()) && !foundAllergens.includes(allergen.id)) {
@@ -203,11 +182,12 @@ const MenuItemForm = ({ formIndex, onRemove, onFormChange, initialData = {}, res
         }
       });
     });
-
+  
     setParsedAllergens(foundAllergens);
+    // Replace the previous allergens with only the newly detected ones
     setFormData((prev) => ({
       ...prev,
-      allergens: [...new Set([...prev.allergens, ...foundAllergens])]
+      allergens: foundAllergens
     }));
   };
 

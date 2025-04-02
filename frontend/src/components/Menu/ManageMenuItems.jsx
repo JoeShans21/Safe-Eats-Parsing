@@ -97,7 +97,7 @@ const ManageMenuItems = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
+    <div className="container mx-auto p-4">
 
       <div className="relative flex w-full mb-6">
         <button 
@@ -126,10 +126,10 @@ const ManageMenuItems = () => {
         <div className="w-[55%]">
           <button 
               onClick={addMenuItem} 
-              className="block w-12 h-12 float-right bg-[#8DB670] text-white rounded-full hover:bg-[#6c8b55]"
+              className="block w-12 h-12 float-right bg-[#8DB670] rounded-full hover:bg-[#6c8b55] justify-items-center"
               title="Add another item"
             >
-              ➕
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           </button>
           <div className='flex flex-col justify-center items-center gap-6 mt-10'>
             <button
