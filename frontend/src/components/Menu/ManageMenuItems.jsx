@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import MenuItemForm from './MenuItemForm';
@@ -13,6 +13,8 @@ const ManageMenuItems = () => {
   const [itemToDelete, setItemToDelete] = useState(null);
   const { restaurantId } = useParams(); // Get restaurantId from URL
   const navigate = useNavigate(); // Hook for navigation
+  const lastFormRef = useRef(null); // Reference for the most recently added form element
+  const shouldScrollToNew = useRef(false); // Track if we need to scroll after adding a new form
 
   // First, check authentication status
   useEffect(() => {
@@ -56,7 +58,16 @@ const ManageMenuItems = () => {
   const addMenuItem = () => {
     const newFormIndex = menuForms.length > 0 ? Math.max(...menuForms) + 1 : 0;
     setMenuForms([...menuForms, newFormIndex]);
+    shouldScrollToNew.current = true;
   };
+
+  useEffect(() => {
+    if (shouldScrollToNew.current && lastFormRef.current) {
+      lastFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      shouldScrollToNew.current = false;
+    }
+  }, [menuForms]); // Trigger when forms array changes
+
 
   // Modified to show confirmation dialog instead of removing immediately
   const confirmRemoveMenuItem = (indexToRemove) => {
@@ -174,15 +185,18 @@ const ManageMenuItems = () => {
       )}
 
       <div className='flex flex-col justify-center items-center'>
-        {menuForms.map((formIndex) => (
-          <MenuItemForm
+        {menuForms.map((formIndex, arrayIndex) => (
+          <div
             key={formIndex}
-            formIndex={formIndex}
-            restaurantOptions={restaurants}
-            onRemove={() => confirmRemoveMenuItem(formIndex)}
-            onFormChange={(data) => handleFormChange(formIndex, data)}
-            initialData={menuItemsData[formIndex] || {}}
-          />
+            ref={arrayIndex === menuForms.length - 1 ? lastFormRef : null}>
+            <MenuItemForm
+              formIndex={formIndex}
+              restaurantOptions={restaurants}
+              onRemove={() => confirmRemoveMenuItem(formIndex)}
+              onFormChange={(data) => handleFormChange(formIndex, data)}
+              initialData={menuItemsData[formIndex] || {}}
+            />
+          </div>
         ))}
       </div>
 
