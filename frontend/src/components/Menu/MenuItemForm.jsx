@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { api } from '../../services/api';
 
 const allergenOptions = [
   { id: 'milk', label: 'Milk', icon: '🥛' },
@@ -168,27 +169,25 @@ const MenuItemForm = ({ formIndex, onRemove, onFormChange, initialData = {}, res
     }));
   };
 
-  const parseIngredients = () => {
+  const parseIngredients = async () => {
     if (!formData.ingredients.trim()) return;
-  
-    setParseError('');
-    const ingredients = formData.ingredients.toLowerCase().split(',').map(item => item.trim());
-    const foundAllergens = [];
-  
-    ingredients.forEach(ingredient => {
-      allergenOptions.forEach(allergen => {
-        if (ingredient.includes(allergen.label.toLowerCase()) && !foundAllergens.includes(allergen.id)) {
-          foundAllergens.push(allergen.id);
-        }
-      });
-    });
-  
-    setParsedAllergens(foundAllergens);
-    // Replace the previous allergens with only the newly detected ones
-    setFormData((prev) => ({
-      ...prev,
-      allergens: foundAllergens
-    }));
+
+    try {
+      setParseError('');
+      const result = await api.parseIngredientsWithAI(formData.ingredients);
+      const { allergens = [], dietaryCategories = [], extractedIngredients = [] } = result || {};
+
+      setParsedAllergens(allergens);
+      setFormData((prev) => ({
+        ...prev,
+        allergens,
+        dietaryCategories: dietaryCategories && dietaryCategories.length > 0 ? dietaryCategories : prev.dietaryCategories,
+        // Optionally replace free-text with normalized list
+        ingredients: extractedIngredients && extractedIngredients.length > 0 ? extractedIngredients.join(', ') : prev.ingredients
+      }));
+    } catch (e) {
+      setParseError(e?.message || 'Failed to parse ingredients');
+    }
   };
 
   return (

@@ -472,6 +472,30 @@ export const api = {
     }
   },
 
+  // AI parsing
+  parseIngredientsWithAI: async (ingredientsText) => {
+    try {
+      const response = await httpRequest({
+        method: 'POST',
+        url: `${BASE_URL}/ai/parse-ingredients`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        data: { ingredients: ingredientsText }
+      });
+
+      if (response.status !== 200) {
+        throw new Error(response.data?.detail || 'Failed to parse ingredients');
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error('AI parsing error:', error);
+      throw error;
+    }
+  },
+
   removeUserAdmin: async (email) => {
     try {
       const response = await httpRequest({
