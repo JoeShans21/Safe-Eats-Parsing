@@ -496,6 +496,37 @@ export const api = {
     }
   },
 
+  ingestMenuImage: async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const token = getAuthToken();
+      const headers = {
+        'Accept': 'application/json'
+      };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      // CapacitorHttp doesn't support FormData directly for multipart
+      // So we use fetch here for multipart uploads
+      const response = await fetch(`${BASE_URL}/ai/ingest-menu`, {
+        method: 'POST',
+        headers,
+        body: formData
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.detail || 'Failed to ingest menu image');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Ingest menu image error:', error);
+      throw error;
+    }
+  },
+
   removeUserAdmin: async (email) => {
     try {
       const response = await httpRequest({

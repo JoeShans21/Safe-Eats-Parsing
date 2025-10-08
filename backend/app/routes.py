@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi import UploadFile, File
 from firebase_admin import db
 import random
 from models import Restaurant, MenuItem
@@ -226,6 +227,222 @@ async def parse_ingredients_ai(
         raise HTTPException(
             status_code=500, detail="Failed to parse ingredients with AI"
         )
+
+
+def _ensure_genai_configured() -> None:
+    api_key = os.getenv("GOOGLE_AI_API_KEY")
+    if not api_key:
+        raise HTTPException(
+            status_code=500,
+            detail="GOOGLE_AI_API_KEY env var is not set on the server",
+        )
+    if genai is None:
+        raise HTTPException(
+            status_code=500,
+            detail="google-generativeai library is not installed on the server",
+        )
+    genai.configure(api_key=api_key)
+
+
+def _select_model_name() -> str:
+    # Mirrors the selection logic used in parse_ingredients_ai
+    env_model = os.getenv("GEMINI_MODEL")
+    if env_model:
+        return env_model
+    try:
+        discovered = [
+            m.name
+            for m in genai.list_models()
+            if getattr(m, "supported_generation_methods", None)
+            and "generateContent" in m.supported_generation_methods
+        ]
+        # Prefer 1.5 and flash/pro variants
+        preference = ["1.5", "flash", "pro"]
+        discovered_sorted = sorted(
+            discovered,
+            key=lambda n: (0 if any(p in n for p in preference) else 1, n),
+        )
+        if discovered_sorted:
+            return discovered_sorted[0]
+    except Exception:
+        pass
+    # Fallbacks
+    for fb in [
+        "gemini-1.5-flash-001",
+        "gemini-1.5-flash",
+        "gemini-1.5-pro",
+        "gemini-1.0-pro",
+        "gemini-pro",
+    ]:
+        return fb
+
+
+@router.post("/ai/ingest-menu")
+async def ingest_menu_image(
+    file: UploadFile = File(...), token_data: dict = Depends(verify_token)
+):
+    try:
+        user_id = token_data.get("uid")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid user token")
+
+        if file.content_type not in ("image/png", "image/jpeg", "image/jpg"):
+            raise HTTPException(
+                status_code=400, detail="Only PNG/JPEG images are supported in this MVP"
+            )
+
+        _ensure_genai_configured()
+        model_name = _select_model_name()
+        model = genai.GenerativeModel(
+            model_name=model_name,
+            generation_config={
+                "temperature": 0,
+                "response_mime_type": "application/json",
+            },
+        )
+
+        image_bytes = await file.read()
+        image_part = {
+            "mime_type": file.content_type,
+            "data": image_bytes,
+        }
+
+        prompt = (
+            "Extract menu items from this image. Return ONLY strict JSON with key 'items' "
+            "as an array of objects: {name, description, price, ingredients}.\n"
+            "- name: string, concise item name.\n"
+            "- description: string, may be empty if none.\n"
+            "- price: number in dollars (no currency symbol, no ranges).\n"
+            "- ingredients: comma-separated string of ingredients if visible; else empty.\n"
+            "Do not include any additional commentary."
+        )
+
+        response = model.generate_content([prompt, image_part])
+        raw_text = response.text or ""
+
+        try:
+            parsed = json.loads(raw_text)
+        except Exception:
+            start = raw_text.find("{")
+            end = raw_text.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                parsed = json.loads(raw_text[start : end + 1])
+            else:
+                raise
+
+        items = parsed.get("items", [])
+        if not isinstance(items, list):
+            items = []
+
+        # Normalize and enrich with allergens/dietaryCategories via the same AI logic
+        normalized_items = []
+        for item in items:
+            name = (item.get("name") or "").strip()
+            description = (item.get("description") or "").strip()
+            # price: try to coerce to float
+            price_value = item.get("price")
+            try:
+                price = float(price_value)
+            except Exception:
+                # Try to scrub non-digits
+                try:
+                    price = float(str(price_value).replace("$", "").strip())
+                except Exception:
+                    price = 0.0
+
+            ingredients_text = (item.get("ingredients") or "").strip()
+
+            # Reuse the same parsing pipeline by calling the model once more for ingredients
+            ai_parse_request = ParseIngredientsRequest(ingredients=ingredients_text)
+            # Inline invocation of the same logic as parse_ingredients_ai
+            # Configure and select model
+            _ensure_genai_configured()
+            model_name_local = _select_model_name()
+            model_local = genai.GenerativeModel(
+                model_name=model_name_local,
+                generation_config={
+                    "temperature": 0,
+                    "response_mime_type": "application/json",
+                },
+            )
+            ing_prompt = (
+                "You are extracting food safety attributes from free-text ingredient lists.\n"
+                "Given the text, return a strict JSON object with keys: allergens (array of strings), "
+                "dietaryCategories (array of strings), and extractedIngredients (array of strings).\n"
+                "The allowed allergen ids are: milk, eggs, fish, tree_nuts, wheat, shellfish, peanuts, soybeans, sesame.\n"
+                "The allowed dietary category ids are: vegan, vegetarian.\n"
+                "Normalize synonyms to these ids. Only output valid ids. If none, output empty arrays.\n"
+                f"Text: {ai_parse_request.ingredients}"
+            )
+            ai_resp = model_local.generate_content(ing_prompt)
+            ai_raw = ai_resp.text or "{}"
+            try:
+                ai_parsed = json.loads(ai_raw)
+            except Exception:
+                s = ai_raw.find("{")
+                e = ai_raw.rfind("}")
+                ai_parsed = (
+                    json.loads(ai_raw[s : e + 1])
+                    if s != -1 and e != -1 and e > s
+                    else {}
+                )
+
+            # Validate ids
+            valid_allergens = {
+                "milk",
+                "eggs",
+                "fish",
+                "tree_nuts",
+                "wheat",
+                "shellfish",
+                "peanuts",
+                "soybeans",
+                "sesame",
+            }
+            valid_dietary = {"vegan", "vegetarian"}
+            synonyms = {
+                "tree nuts": "tree_nuts",
+                "treenuts": "tree_nuts",
+                "gluten": "wheat",
+            }
+
+            def norm(v: str) -> str:
+                t = (v or "").strip().lower()
+                if t in synonyms:
+                    t = synonyms[t]
+                return t.replace(" ", "_")
+
+            allergens = [
+                a
+                for a in [norm(x) for x in ai_parsed.get("allergens", [])]
+                if a in valid_allergens
+            ]
+            dietary = [
+                d
+                for d in [norm(x) for x in ai_parsed.get("dietaryCategories", [])]
+                if d in valid_dietary
+            ]
+            extracted_ingredients = ai_parsed.get("extractedIngredients", []) or []
+            if extracted_ingredients and not ingredients_text:
+                ingredients_text = ", ".join(extracted_ingredients)
+
+            normalized_items.append(
+                {
+                    "name": name,
+                    "description": description,
+                    "price": price,
+                    "ingredients": ingredients_text,
+                    "allergens": allergens,
+                    "dietaryCategories": dietary,
+                }
+            )
+
+        return {"items": normalized_items}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Ingest image error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to ingest menu image")
 
 
 @router.post("/restaurants/")
