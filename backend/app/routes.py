@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi import UploadFile, File
+from fastapi.responses import JSONResponse
 from firebase_admin import db
 import random
 from models import Restaurant, MenuItem
@@ -10,6 +11,8 @@ import json
 from pydantic import BaseModel
 from google.generativeai.types import RequestOptions
 from google.api_core import retry
+import asyncio
+import concurrent.futures
 
 try:
     import google.generativeai as genai
@@ -50,6 +53,29 @@ def generate_id(ref_path: str, length: int = 5, max_attempts: int = 5) -> str:
         status_code=500,
         detail=f"Unable to generate unique ID after {max_attempts} attempts",
     )
+
+
+# Best-effort classification of upstream timeout errors from various libraries
+def _is_timeout_error(error: Exception) -> bool:
+    try:
+        from google.api_core.exceptions import DeadlineExceeded, RetryError  # type: ignore
+    except Exception:
+        DeadlineExceeded = tuple()  # type: ignore
+        RetryError = tuple()  # type: ignore
+
+    timeout_types = (
+        asyncio.TimeoutError,
+        TimeoutError,  # builtin
+        concurrent.futures.TimeoutError,
+    )
+    if isinstance(error, timeout_types):
+        return True
+    # Google API Core timeouts
+    if isinstance(error, (DeadlineExceeded, RetryError)):  # type: ignore
+        return True
+    # Fallback: string heuristics
+    text = str(error).lower()
+    return any(token in text for token in ("deadline exceeded", "timeout", "timed out"))
 
 
 # Check if the user is an admin
@@ -156,7 +182,12 @@ async def parse_ingredients_ai(
                         "response_mime_type": "application/json",
                     },
                 )
-                response = model.generate_content(prompt)
+                try:
+                    response = model.generate_content(prompt)
+                except Exception as e:
+                    if _is_timeout_error(e):
+                        return JSONResponse(status_code=504, content={"error": "upstream_timeout"})
+                    raise
                 if response and getattr(response, "text", None):
                     break
             except Exception as e:
@@ -353,12 +384,17 @@ async def ingest_menu_file(  # 1. Renamed for clarity
         )
 
         # 7. The AI call is identical, just using the generic 'model_part'
-        response = model.generate_content(
-            [prompt, model_part],
-            request_options=RequestOptions(
-                retry=retry.Retry(initial=10, multiplier=2, maximum=60, timeout=300)
-            ),
-        )
+        try:
+            response = model.generate_content(
+                [prompt, model_part],
+                request_options=RequestOptions(
+                    retry=retry.Retry(initial=10, multiplier=2, maximum=60, timeout=300)
+                ),
+            )
+        except Exception as e:
+            if _is_timeout_error(e):
+                return JSONResponse(status_code=504, content={"error": "upstream_timeout"})
+            raise
         raw_text = response.text or ""
 
         try:
@@ -454,12 +490,17 @@ async def ingest_menu_file(  # 1. Renamed for clarity
                 "---"
                 f"Text to analyze: {ai_parse_request.ingredients}"
             )
-            ai_resp = model_local.generate_content(
-                ing_prompt,
-                request_options=RequestOptions(
-                    retry=retry.Retry(initial=10, multiplier=2, maximum=60, timeout=300)
-                ),
-            )
+            try:
+                ai_resp = model_local.generate_content(
+                    ing_prompt,
+                    request_options=RequestOptions(
+                        retry=retry.Retry(initial=10, multiplier=2, maximum=60, timeout=300)
+                    ),
+                )
+            except Exception as e:
+                if _is_timeout_error(e):
+                    return JSONResponse(status_code=504, content={"error": "upstream_timeout"})
+                raise
             ai_raw = ai_resp.text or "{}"
             try:
                 ai_parsed = json.loads(ai_raw)
@@ -790,7 +831,9 @@ async def get_menu_items(
             ]
 
         return restaurant_menu
-
+    except HTTPException:
+        # Propagate intended HTTP errors
+        raise
     except Exception as e:
         print(f"Error fetching menu items: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
